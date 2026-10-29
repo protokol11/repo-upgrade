@@ -1,6 +1,6 @@
 # repo-upgrade
 
-Agent skills that stamp a standard repo skeleton — session rules, agent roles, docs conventions — from one principle catalog.
+Agent skills that stamp a standard repo skeleton from one principle catalog, so agentic projects never drift.
 
 Two skills cover both entry states: `setup-repo` scaffolds a blank folder, `upgrade-repo` walks an existing repo to the same end state, merging instead of overwriting.
 
