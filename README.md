@@ -12,6 +12,15 @@ The root cause is a missing single source of truth. When each file is written by
 
 Scope: scaffold and upgrade of agent-coding repos on this toolchain. Non-scope: general project templating, CI setup, dependency management — none of those are touched.
 
+## Quick start
+
+```sh
+git clone https://github.com/protokol11/repo-upgrade.git
+cp -r repo-upgrade ~/.agents/skills/
+```
+
+In pi: `/skill:setup-repo` stamps a blank folder, `/skill:upgrade-repo` walks an existing repo. Requires the `principles` pack. Details below.
+
 ## Install
 
 Prerequisites:
