@@ -1,18 +1,58 @@
 # repo-upgrade
 
-repo-upgrade is a pair of agent skills (setup-repo + upgrade-repo) that gives an AI-coding-agent project a standard skeleton: session rules, agent roles, docs conventions, and a compliance package — stamped from one principle catalog, so it never drifts.
+Agent skills that stamp a standard repo skeleton — session rules, agent roles, docs conventions — from one principle catalog.
 
-## What you get
-
-- **Scaffold a new repo in one pass** → `AGENTS.md`, `CONTEXT.md`, `.pi/agents/`, `.docs/` appear with role prompts injected, plus git init.
-- **Upgrade an existing repo via dry-run first** → an audit, a risk-ranked plan, and a backup snapshot before any write happens.
-- **Re-stamp the compliance package on every catalog bump** → `lint-rules.md` and `audit-log.md` render from the same source, so agents and the docs agree.
+Two skills cover both entry states: `setup-repo` scaffolds a blank folder, `upgrade-repo` walks an existing repo to the same end state, merging instead of overwriting.
 
 ## Why
 
-A new project without a skeleton grows by improvisation: session state scattered across chats, plan files in four formats, agents answering with stale context. The pain is the same for a repo that has already grown this way — every new agent has to reverse-engineer how things are done.
+A new project without a skeleton grows by improvisation. Session state scatters across chats, plan files appear in four formats, every new agent reverse-engineers how things are done — and answers with stale context. The cost is identical for a repo that has already grown this way.
 
-repo-upgrade gives both cases one entry point. `setup-repo` builds the scaffold for a blank folder. `upgrade-repo` walks an existing repo to the same end state, merging instead of overwriting.
+The root cause is a missing single source of truth. When each file is written by hand, the lint rules, the role prompts and the docs each drift on their own schedule. repo-upgrade renders both skills' artifacts from one principle catalog (`principles-render`), so the compliance package is a stamp of a single source: bump the catalog, re-stamp, and agents and docs agree again.
+
+Scope: scaffold and upgrade of agent-coding repos on this toolchain. Non-scope: general project templating, CI setup, dependency management — none of those are touched.
+
+## Install
+
+Prerequisites:
+
+- **PowerShell.** `scaffold.ps1` is Windows-first and has no POSIX port. On macOS/Linux it needs PowerShell Core, and that combination is untested.
+- **The `principles` package.** Both skills call its renderer (`~/.agents/skills/principles-render/render.mjs`) to produce the compliance artifacts (role prompts, `lint-rules.md`, spec template). Without it, the compliance package cannot be stamped.
+- **Node.js**, to run the renderer.
+
+Command:
+
+```powershell
+cp -Recurse repo-upgrade $env:USERPROFILE\.agents\skills\
+```
+
+Expected result: `setup-repo` and `upgrade-repo` appear next to your other skills, and `setup-repo\scripts\scaffold.ps1` resolves:
+
+```powershell
+Test-Path $env:USERPROFILE\.agents\skills\repo-upgrade\setup-repo\scripts\scaffold.ps1
+# True
+```
+
+## Usage
+
+One path to one worked result — scaffold a new project:
+
+```powershell
+node $env:USERPROFILE\.agents\skills\principles-render\render.mjs --out $env:TEMP\render
+& $env:USERPROFILE\.agents\skills\setup-repo\scripts\scaffold.ps1 -ProjectPath .\my-new-project
+```
+
+Then answer the drill questions one at a time as the skill asks them. When it finishes, the project holds the skeleton:
+
+```powershell
+Get-ChildItem .\my-new-project -Name
+# AGENTS.md
+# CONTEXT.md
+# .pi
+# .docs
+```
+
+For an existing repo, run `upgrade-repo` instead: it audits first, writes `upgrade-plan.md` with per-item risk classes, takes a snapshot, then re-runs the scaffold in `-OnlyMissing` mode and diffs the result against a freshly rendered stamp before writing anything.
 
 ## How it works
 
@@ -41,35 +81,19 @@ Two skills, one renderer between them:
                                    └───────────────────┘
 ```
 
-- **setup-repo**: renders the catalog, runs `scaffold.ps1` to copy templates and inject role prompts, then drills you one question at a time to fill in project facts, then verifies against acceptance criteria.
-- **upgrade-repo**: audits the repo against the same criteria, writes `upgrade-plan.md` with per-item risk classes, takes a git snapshot (or a `.archive/` copy), then re-runs the scaffold in `-OnlyMissing` mode. Verification diffs the result against a freshly rendered stamp and refuses to overwrite project-specific content without confirmation.
+- **setup-repo**: renders the catalog, copies templates and injects role prompts, then drills you one question at a time to fill in project facts, then verifies against acceptance criteria.
+- **upgrade-repo**: audits the repo against the same criteria, writes `upgrade-plan.md`, takes a git snapshot (or a `.archive/` copy), re-runs the scaffold in `-OnlyMissing` mode, and refuses to overwrite project-specific content without confirmation.
 
-## Install
+## Skills
 
-Copy this folder into your skills directory:
+Each skill is driven through its own `SKILL.md`; the README is the map, the skill files are the interface.
 
-```powershell
-# PowerShell, Windows-oriented — the scaffold script has no POSIX port
-cp -Recurse repo-upgrade $env:USERPROFILE\.agents\skills\
-```
+- `setup-repo` — scaffold a blank folder. Invocation: run the skill, it calls `scripts\scaffold.ps1 -ProjectPath <dir>` and drills for project facts.
+- `upgrade-repo` — upgrade an existing repo. Invocation: run the skill; it audits, plans, snapshots, then scaffolds with `-OnlyMissing` and verifies against a fresh render.
 
-Dependencies, stated openly:
+## Contributing
 
-- **`scaffold.ps1` is PowerShell.** Windows-first; on macOS/Linux you would need PowerShell Core and untested behavior.
-- **The `principles` package is required.** Both skills call its renderer (`~/.agents/skills/principles-render/render.mjs`) to produce the compliance artifacts (role prompts, `lint-rules.md`, spec template). Without it, the compliance package cannot be stamped.
-
-## Quick example
-
-```powershell
-node $env:USERPROFILE\.agents\skills\principles-render\render.mjs --out $env:TEMP\render
-& $env:USERPROFILE\.agents\skills\setup-repo\scripts\scaffold.ps1 -ProjectPath .\my-new-project
-```
-
-Then answer the drill questions; the project ends with `AGENTS.md`, `CONTEXT.md`, `.pi/agents/`, `.docs/PLAN.md`, and `.docs/violations/` in place.
-
-## Honest status
-
-Status: **working**. Both skills are in daily use on the maintainer's projects. Known limits: scaffold script is Windows-only; merge behavior on heavily customized repos stops for manual review; no automated test suite ships with this pack.
+Both skills are in daily use on the maintainer's projects. Merge behavior on heavily customized repos stops for manual review; no automated test suite ships with this pack — report behavior against the steps above as an issue in the parent repository.
 
 ## License
 
